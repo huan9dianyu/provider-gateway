@@ -1,0 +1,16 @@
+{
+  "name": "provider-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "start:daemon": "node scripts/start-daemon.mjs",
+    "stop": "node scripts/stop.mjs",
+    "restart": "npm run stop && npm run start:daemon",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

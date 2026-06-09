@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Provider Gateway</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f3f6fa;
+        --panel: #ffffff;
+        --panel-soft: #f8fafc;
+        --line: #dbe3ee;
+        --line-strong: #c7d2e0;
+        --text: #111827;
+        --muted: #64748b;
+        --accent: #0f766e;
+        --accent-dark: #115e59;
+        --danger: #b42318;
+        --danger-soft: #fff1f0;
+        --focus: #2563eb;
+        --shadow: 0 14px 35px rgba(15, 23, 42, 0.08);
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(180deg, #e9f0f7 0, rgba(233, 240, 247, 0) 270px),
+          var(--bg);
+        color: var(--text);
+        font: 14px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .shell-header {
+        border-bottom: 1px solid rgba(199, 210, 224, 0.7);
+        background: rgba(255, 255, 255, 0.82);
+        backdrop-filter: blur(14px);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+      }
+
+      .wrap {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 18px 22px;
+      }
+
+      .header-inner,
+      .hero-panel,
+      .panel-heading,
+      .toolbar,
+      .active-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 22px;
+        font-weight: 750;
+        letter-spacing: 0;
+      }
+
+      h2 {
+        font-size: 18px;
+        font-weight: 720;
+      }
+
+      h3 {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .eyebrow,
+      .section-kicker,
+      label span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .page-title {
+        display: grid;
+        gap: 2px;
+      }
+
+      main.wrap {
+        display: grid;
+        gap: 16px;
+        padding-top: 20px;
+        padding-bottom: 32px;
+      }
+
+      .hero-panel,
+      .providers-panel,
+      .metric-card,
+      .settings-card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: var(--shadow);
+      }
+
+      .hero-panel {
+        padding: 18px;
+      }
+
+      .hero-copy {
+        display: grid;
+        gap: 8px;
+      }
+
+      .hero-copy p {
+        color: var(--muted);
+        max-width: 760px;
+      }
+
+      .endpoint-pill,
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        width: fit-content;
+        min-height: 30px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 5px 10px;
+        background: var(--panel-soft);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      code {
+        padding: 2px 5px;
+        border-radius: 5px;
+        background: #eef3f8;
+        color: #0f172a;
+      }
+
+      .hero-actions,
+      .toolbar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+
+      .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .metric-card {
+        display: grid;
+        gap: 8px;
+        min-height: 106px;
+        padding: 15px;
+      }
+
+      .metric-label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .metric-value {
+        min-width: 0;
+        color: var(--text);
+        font-size: 20px;
+        font-weight: 760;
+        overflow-wrap: anywhere;
+      }
+
+      .metric-card.accent .metric-value {
+        color: var(--accent-dark);
+      }
+
+      .settings-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+        gap: 16px;
+      }
+
+      .settings-card {
+        display: grid;
+        gap: 16px;
+        padding: 16px;
+      }
+
+      .form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      label {
+        display: grid;
+        gap: 6px;
+      }
+
+      .field-label {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .switch-control {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 38px;
+      }
+
+      .switch-copy {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      input,
+      textarea,
+      select {
+        width: 100%;
+        min-height: 38px;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        padding: 8px 10px;
+        color: var(--text);
+        background: #fff;
+        font: inherit;
+        transition:
+          border-color 0.16s ease,
+          box-shadow 0.16s ease,
+          background 0.16s ease;
+      }
+
+      textarea {
+        min-height: 62px;
+        resize: vertical;
+      }
+
+      input:hover,
+      textarea:hover,
+      select:hover {
+        border-color: #aab8ca;
+      }
+
+      input:focus,
+      textarea:focus,
+      select:focus,
+      button:focus {
+        outline: 2px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      button {
+        min-height: 38px;
+        border: 1px solid var(--line-strong);
+        border-radius: 7px;
+        padding: 8px 13px;
+        background: #fff;
+        color: var(--text);
+        cursor: pointer;
+        font: inherit;
+        font-weight: 650;
+        white-space: nowrap;
+        transition:
+          transform 0.12s ease,
+          border-color 0.16s ease,
+          background 0.16s ease,
+          color 0.16s ease;
+      }
+
+      button:hover {
+        border-color: #9aa9bd;
+        background: #f8fafc;
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      button.primary {
+        border-color: var(--accent);
+        background: var(--accent);
+        color: #fff;
+      }
+
+      button.primary:hover {
+        border-color: var(--accent-dark);
+        background: var(--accent-dark);
+      }
+
+      button.danger {
+        border-color: #f4b8b2;
+        background: var(--danger-soft);
+        color: var(--danger);
+      }
+
+      .providers-panel {
+        overflow: hidden;
+      }
+
+      .providers-panel .panel-heading {
+        padding: 16px 16px 12px;
+      }
+
+      .panel-copy {
+        display: grid;
+        gap: 3px;
+      }
+
+      .status {
+        min-height: 24px;
+        border-top: 1px solid var(--line);
+        padding: 12px 16px 0;
+        color: var(--muted);
+      }
+
+      .error {
+        color: var(--danger);
+      }
+
+      .ok {
+        color: var(--accent-dark);
+      }
+
+      .table-shell {
+        overflow-x: auto;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+      }
+
+      th,
+      td {
+        border-top: 1px solid var(--line);
+        padding: 11px 10px;
+        text-align: left;
+        vertical-align: top;
+      }
+
+      th {
+        background: var(--panel-soft);
+        color: var(--muted);
+        font-size: 12px;
+        font-weight: 700;
+      }
+
+      tbody tr {
+        background: #fff;
+      }
+
+      tbody tr:hover {
+        background: #fbfdff;
+      }
+
+      td input,
+      td textarea {
+        min-width: 0;
+      }
+
+      .col-enabled {
+        width: 82px;
+      }
+
+      .col-priority {
+        width: 92px;
+      }
+
+      .col-actions {
+        width: 104px;
+      }
+
+      .switch {
+        display: inline-flex;
+        align-items: center;
+        width: 46px;
+        height: 26px;
+        cursor: pointer;
+      }
+
+      .switch input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+
+      .switch span {
+        position: relative;
+        display: block;
+        width: 44px;
+        height: 24px;
+        border-radius: 999px;
+        background: #cbd5e1;
+        transition: background 0.16s ease;
+      }
+
+      .switch span::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #fff;
+        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+        transition: transform 0.16s ease;
+      }
+
+      .switch input:checked + span {
+        background: var(--accent);
+      }
+
+      .switch input:checked + span::after {
+        transform: translateX(20px);
+      }
+
+      .empty-state {
+        display: none;
+        border-top: 1px solid var(--line);
+        padding: 24px 16px;
+        color: var(--muted);
+        text-align: center;
+      }
+
+      .empty-state.visible {
+        display: block;
+      }
+
+      @media (max-width: 980px) {
+        .summary-grid,
+        .settings-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .settings-grid {
+          display: grid;
+        }
+      }
+
+      @media (max-width: 760px) {
+        .wrap {
+          padding: 14px;
+        }
+
+        .header-inner,
+        .hero-panel,
+        .panel-heading,
+        .toolbar,
+        .active-actions {
+          align-items: stretch;
+          flex-direction: column;
+        }
+
+        .hero-actions,
+        .toolbar-actions {
+          justify-content: stretch;
+        }
+
+        .hero-actions button,
+        .toolbar-actions button,
+        .active-actions button {
+          width: 100%;
+        }
+
+        .summary-grid,
+        .settings-grid,
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
+
+        table,
+        thead,
+        tbody,
+        th,
+        td,
+        tr {
+          display: block;
+        }
+
+        thead {
+          display: none;
+        }
+
+        tbody {
+          display: grid;
+          gap: 12px;
+          padding: 12px;
+          background: var(--panel-soft);
+          border-top: 1px solid var(--line);
+        }
+
+        tr {
+          border: 1px solid var(--line);
+          border-radius: 8px;
+          overflow: hidden;
+          box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
+        }
+
+        td {
+          border-top: 0;
+          padding: 9px 10px;
+        }
+
+        td + td {
+          border-top: 1px solid var(--line);
+        }
+
+        td::before {
+          content: attr(data-label);
+          display: block;
+          margin-bottom: 5px;
+          color: var(--muted);
+          font-size: 12px;
+          font-weight: 700;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="shell-header">
+      <div class="wrap header-inner">
+        <div class="page-title">
+          <h1>Provider Gateway</h1>
+          <p class="eyebrow">本地 Responses API provider 路由控制台</p>
+        </div>
+        <span class="endpoint-pill">入口 <code id="endpoint">/v1/responses</code></span>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <section class="hero-panel">
+        <div class="hero-copy">
+          <h2>设置与运行状态</h2>
+          <p>管理本地监听、自动切换规则和上游 provider。保存后配置会立即热更新。</p>
+        </div>
+        <div class="hero-actions">
+          <button id="refreshStatus">刷新状态</button>
+          <button class="primary" id="saveConfig">保存并生效</button>
+        </div>
+      </section>
+
+      <section class="summary-grid" aria-label="运行状态摘要">
+        <div class="metric-card">
+          <span class="metric-label">配置主 provider</span>
+          <strong class="metric-value" id="activeName">-</strong>
+          <span class="status-pill">配置层主路由</span>
+        </div>
+        <div class="metric-card accent">
+          <span class="metric-label">当前运行 provider</span>
+          <strong class="metric-value" id="currentName">-</strong>
+          <span class="status-pill">运行态实际路由</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">启用 providers</span>
+          <strong class="metric-value" id="enabledCount">-</strong>
+          <span class="status-pill">参与转发与切换</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">重选时间</span>
+          <strong class="metric-value" id="retryAt">-</strong>
+          <span class="status-pill">备用 provider 冷却</span>
+        </div>
+      </section>
+
+      <section class="settings-grid">
+        <div class="settings-card">
+          <div class="panel-copy">
+            <h3>服务设置</h3>
+            <p class="section-kicker">监听地址、端口、请求超时和自动切换状态码。</p>
+          </div>
+          <div class="form-grid">
+            <label>
+              <span>监听地址</span>
+              <input id="host" autocomplete="off" />
+            </label>
+            <label>
+              <span>监听端口</span>
+              <input id="port" type="number" min="1" max="65535" />
+            </label>
+            <label>
+              <span>请求超时毫秒</span>
+              <input id="timeout" type="number" min="1000" step="1000" />
+            </label>
+            <label>
+              <span>自动切换状态码</span>
+              <input id="failoverCodes" autocomplete="off" />
+            </label>
+            <div>
+              <span class="field-label">诊断日志</span>
+              <label class="switch-control">
+                <span class="switch" aria-label="开启诊断日志">
+                  <input id="loggingEnabled" type="checkbox" />
+                  <span></span>
+                </span>
+                <span class="switch-copy">记录请求链路和流式错误，不记录 API Key 或正文</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="panel-copy">
+            <h3>主 provider</h3>
+            <p class="section-kicker">选择配置层主 provider，切换后会重置运行态故障切换。</p>
+          </div>
+          <div class="active-actions">
+            <label>
+              <span>设置主 provider</span>
+              <select id="activeProvider"></select>
+            </label>
+            <button id="switchActive">立即切换</button>
+          </div>
+          <p class="status" id="statusText"></p>
+        </div>
+      </section>
+
+      <section class="providers-panel">
+        <div class="panel-heading">
+          <div class="panel-copy">
+            <h3>Provider 管理</h3>
+            <p class="section-kicker">按优先级配置上游地址、API Key、启用状态和备注。</p>
+          </div>
+          <div class="toolbar-actions">
+            <button id="addProvider">新增 provider</button>
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th class="col-enabled">启用</th>
+                <th>名称</th>
+                <th>Provider Base URL</th>
+                <th>API Key</th>
+                <th class="col-priority">优先级</th>
+                <th>备注</th>
+                <th class="col-actions">操作</th>
+              </tr>
+            </thead>
+            <tbody id="providersBody"></tbody>
+          </table>
+        </div>
+        <p class="empty-state" id="providersEmpty">暂无 provider，点击“新增 provider”开始配置。</p>
+      </section>
+    </main>
+
+    <script>
+      const state = { config: null };
+
+      const el = {
+        endpoint: document.querySelector('#endpoint'),
+        activeName: document.querySelector('#activeName'),
+        currentName: document.querySelector('#currentName'),
+        enabledCount: document.querySelector('#enabledCount'),
+        retryAt: document.querySelector('#retryAt'),
+        statusText: document.querySelector('#statusText'),
+        host: document.querySelector('#host'),
+        port: document.querySelector('#port'),
+        timeout: document.querySelector('#timeout'),
+        loggingEnabled: document.querySelector('#loggingEnabled'),
+        failoverCodes: document.querySelector('#failoverCodes'),
+        activeProvider: document.querySelector('#activeProvider'),
+        providersBody: document.querySelector('#providersBody'),
+        providersEmpty: document.querySelector('#providersEmpty'),
+        refreshStatus: document.querySelector('#refreshStatus'),
+        switchActive: document.querySelector('#switchActive'),
+        addProvider: document.querySelector('#addProvider'),
+        saveConfig: document.querySelector('#saveConfig'),
+      };
+
+      function showStatus(message, ok = true) {
+        el.statusText.textContent = message;
+        el.statusText.className = ok ? 'status ok' : 'status error';
+      }
+
+      function formatLocalTime(value) {
+        if (!value) {
+          return '-';
+        }
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) {
+          return value;
+        }
+        return date.toLocaleString('zh-CN', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false,
+        });
+      }
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          ...options,
+          headers: {
+            'content-type': 'application/json',
+            ...(options.headers || {}),
+          },
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          throw new Error(body.error || body?.error?.message || response.statusText);
+        }
+        return body;
+      }
+
+      function providerFromRow(row) {
+        return {
+          enabled: row.querySelector('[data-field="enabled"]').checked,
+          name: row.querySelector('[data-field="name"]').value.trim(),
+          baseUrl: row.querySelector('[data-field="baseUrl"]').value.trim(),
+          apiKey: row.querySelector('[data-field="apiKey"]').value,
+          priority: Number(row.querySelector('[data-field="priority"]').value || 1),
+          notes: row.querySelector('[data-field="notes"]').value,
+        };
+      }
+
+      function rowsToProviders() {
+        return [...el.providersBody.querySelectorAll('tr')].map(providerFromRow);
+      }
+
+      function syncProviderMeta() {
+        const providers = rowsToProviders();
+        const enabledCount = providers.filter((provider) => provider.enabled).length;
+        el.enabledCount.textContent = `${enabledCount} / ${providers.length}`;
+        el.providersEmpty.classList.toggle('visible', providers.length === 0);
+      }
+
+      function collectConfig() {
+        return {
+          server: {
+            host: el.host.value.trim(),
+            port: Number(el.port.value),
+          },
+          activeProvider: el.activeProvider.value,
+          requestTimeoutMs: Number(el.timeout.value),
+          logging: {
+            enabled: el.loggingEnabled.checked,
+          },
+          failoverStatusCodes: el.failoverCodes.value
+            .split(',')
+            .map((item) => Number(item.trim()))
+            .filter(Boolean),
+          providers: rowsToProviders(),
+        };
+      }
+
+      function renderProviderRow(provider) {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td data-label="启用">
+            <label class="switch" aria-label="启用 provider">
+              <input data-field="enabled" type="checkbox" />
+              <span></span>
+            </label>
+          </td>
+          <td data-label="名称"><input data-field="name" autocomplete="off" /></td>
+          <td data-label="Provider Base URL"><input data-field="baseUrl" autocomplete="off" /></td>
+          <td data-label="API Key"><textarea data-field="apiKey" rows="2" spellcheck="false"></textarea></td>
+          <td data-label="优先级"><input data-field="priority" type="number" min="1" /></td>
+          <td data-label="备注"><textarea data-field="notes" rows="2"></textarea></td>
+          <td data-label="操作"><button class="danger" type="button">删除</button></td>
+        `;
+        row.querySelector('[data-field="enabled"]').checked = provider.enabled !== false;
+        row.querySelector('[data-field="name"]').value = provider.name || '';
+        row.querySelector('[data-field="baseUrl"]').value = provider.baseUrl || '';
+        row.querySelector('[data-field="apiKey"]').value = provider.apiKey || '';
+        row.querySelector('[data-field="priority"]').value = provider.priority || 1;
+        row.querySelector('[data-field="notes"]').value = provider.notes || '';
+        row.querySelector('button').addEventListener('click', () => {
+          row.remove();
+          rebuildActiveOptions();
+        });
+        row.querySelector('[data-field="name"]').addEventListener('input', rebuildActiveOptions);
+        row.querySelector('[data-field="enabled"]').addEventListener('change', rebuildActiveOptions);
+        return row;
+      }
+
+      function rebuildActiveOptions() {
+        const previous = el.activeProvider.value || state.config?.activeProvider;
+        const providers = rowsToProviders().filter((provider) => provider.enabled && provider.name);
+        el.activeProvider.innerHTML = '';
+        for (const provider of providers) {
+          const option = document.createElement('option');
+          option.value = provider.name;
+          option.textContent = provider.name;
+          el.activeProvider.append(option);
+        }
+        if (providers.some((provider) => provider.name === previous)) {
+          el.activeProvider.value = previous;
+        }
+        syncProviderMeta();
+      }
+
+      function renderConfig(config) {
+        state.config = config;
+        el.activeName.textContent = config.activeProvider;
+        el.host.value = config.server.host;
+        el.port.value = config.server.port;
+        el.timeout.value = config.requestTimeoutMs;
+        el.loggingEnabled.checked = config.logging?.enabled !== false;
+        el.failoverCodes.value = config.failoverStatusCodes.join(',');
+        el.providersBody.replaceChildren(
+          ...config.providers.map((provider) => renderProviderRow(provider)),
+        );
+        rebuildActiveOptions();
+        el.activeProvider.value = config.activeProvider;
+        syncProviderMeta();
+      }
+
+      async function loadConfig() {
+        renderConfig(await api('/api/config'));
+        await refreshStatus();
+        showStatus('配置已加载');
+      }
+
+      async function saveConfig() {
+        const saved = await api('/api/config', {
+          method: 'PUT',
+          body: JSON.stringify(collectConfig()),
+        });
+        renderConfig(saved);
+        showStatus('配置已保存并实时生效');
+      }
+
+      async function switchActive() {
+        const saved = await api('/api/active-provider', {
+          method: 'POST',
+          body: JSON.stringify({ name: el.activeProvider.value }),
+        });
+        renderConfig(saved);
+        showStatus(`已切换到 ${saved.activeProvider}`);
+      }
+
+      async function refreshStatus() {
+        const status = await api('/api/status');
+        el.activeName.textContent = status.activeProvider;
+        el.currentName.textContent = status.runtime?.currentProvider || status.activeProvider;
+        el.enabledCount.textContent = `${status.enabledProviders.length} / ${rowsToProviders().length || status.enabledProviders.length}`;
+        el.retryAt.textContent = formatLocalTime(status.runtime?.retryAt);
+        showStatus(`启用 providers：${status.enabledProviders.join(', ') || '-'}`);
+      }
+
+      el.addProvider.addEventListener('click', () => {
+        el.providersBody.append(
+          renderProviderRow({
+            enabled: true,
+            name: `provider-${el.providersBody.children.length + 1}`,
+            baseUrl: 'https://example.com/v1',
+            apiKey: '',
+            priority: el.providersBody.children.length + 1,
+            notes: '',
+          }),
+        );
+        rebuildActiveOptions();
+      });
+      el.saveConfig.addEventListener('click', () => saveConfig().catch((error) => showStatus(error.message, false)));
+      el.switchActive.addEventListener('click', () => switchActive().catch((error) => showStatus(error.message, false)));
+      el.refreshStatus.addEventListener('click', () => refreshStatus().catch((error) => showStatus(error.message, false)));
+
+      loadConfig().catch((error) => showStatus(error.message, false));
+    </script>
+  </body>
+</html>

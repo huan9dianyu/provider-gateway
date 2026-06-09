@@ -1,0 +1,6 @@
+node_modules/
+config/providers.local.json
+.provider-gateway.pid
+logs/
+.DS_Store
+.superpowers/

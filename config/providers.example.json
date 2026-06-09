@@ -1,0 +1,30 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 8787
+  },
+  "activeProvider": "primary",
+  "requestTimeoutMs": 120000,
+  "logging": {
+    "enabled": true
+  },
+  "failoverStatusCodes": [429, 500, 502, 503, 504],
+  "providers": [
+    {
+      "name": "primary",
+      "baseUrl": "https://api.openai.com/v1",
+      "apiKey": "replace-with-api-key",
+      "enabled": true,
+      "priority": 1,
+      "notes": "Main Responses API provider"
+    },
+    {
+      "name": "backup",
+      "baseUrl": "https://backup.example.com/v1",
+      "apiKey": "replace-with-api-key",
+      "enabled": false,
+      "priority": 2,
+      "notes": "Backup Responses API provider"
+    }
+  ]
+}
