@@ -227,6 +227,15 @@ function requestPath(request) {
   return new URL(request.url, 'http://127.0.0.1').pathname;
 }
 
+function pruneProviderHealth(providerHealth, config) {
+  const activeProviderNames = new Set(config.providers.map((provider) => provider.name));
+  for (const providerName of providerHealth.keys()) {
+    if (!activeProviderNames.has(providerName)) {
+      providerHealth.delete(providerName);
+    }
+  }
+}
+
 async function serveAdmin(publicDir, response) {
   const adminPath = path.join(publicDir, 'admin.html');
   response.writeHead(200, { 'content-type': 'text/html; charset=utf-8' });
@@ -338,6 +347,7 @@ export async function createGatewayServer({
         const nextConfig = await readJsonBody(request);
         config = await writeConfig(configPath, nextConfig);
         runtimeState.reset();
+        pruneProviderHealth(providerHealth, config);
         sendJson(response, 200, config);
         return;
       }
@@ -347,6 +357,7 @@ export async function createGatewayServer({
         const nextConfig = { ...config, activeProvider: body.name };
         config = await writeConfig(configPath, nextConfig);
         runtimeState.reset();
+        pruneProviderHealth(providerHealth, config);
         sendJson(response, 200, config);
         return;
       }
@@ -465,6 +476,7 @@ export async function createGatewayServer({
       });
     },
     close({ force = false } = {}) {
+      runtimeState.reset();
       if (force) {
         for (const socket of sockets) {
           socket.destroy();

@@ -551,3 +551,92 @@ test('stream status failure advances runtime provider for the next request', asy
   assert.equal(status.runtime.mode, 'fallback');
   assert.equal(status.runtime.currentProvider, 'backup');
 });
+
+test('PUT /api/config drops health entries for removed providers', async (t) => {
+  const configPath = await writeTempConfig();
+  const app = await createGatewayServer({
+    configPath,
+    runtimeStateOptions: {
+      fallbackRetryDelayMs: 60_000,
+      setTimer: () => ({ unref() {} }),
+      clearTimer: () => {},
+    },
+    fetchImpl: async (url) => {
+      if (url.includes('primary')) {
+        return new Response('primary failed', { status: 500 });
+      }
+      return new Response('{"id":"resp_backup"}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+  await app.listen(0, '127.0.0.1');
+  t.after(() => app.close({ force: true }));
+  const baseUrl = app.url;
+
+  await fetch(`${baseUrl}/v1/responses`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-5.5', input: 'hello' }),
+  });
+
+  await fetch(`${baseUrl}/v1/responses`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-5.5', input: 'hello again' }),
+  });
+
+  const updated = {
+    server: { host: '127.0.0.1', port: 8787 },
+    activeProvider: 'primary',
+    requestTimeoutMs: 5000,
+    failoverStatusCodes: [429, 500, 502, 503, 504],
+    providers: [
+      {
+        name: 'primary',
+        baseUrl: 'https://primary.example/v1',
+        apiKey: 'primary-key',
+        enabled: true,
+        priority: 1,
+      },
+    ],
+  };
+
+  const putResponse = await fetch(`${baseUrl}/api/config`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(updated),
+  });
+
+  assert.equal(putResponse.status, 200);
+
+  const status = await (await fetch(`${baseUrl}/api/status`)).json();
+  assert.deepEqual(Object.keys(status.health), ['primary']);
+});
+
+test('close resets runtime state and clears pending fallback snapshot', async () => {
+  const configPath = await writeTempConfig();
+  const app = await createGatewayServer({
+    configPath,
+    runtimeStateOptions: {
+      fallbackRetryDelayMs: 60_000,
+      setTimer: () => ({ unref() {} }),
+      clearTimer: () => {},
+    },
+    fetchImpl: async () => new Response('primary failed', { status: 500 }),
+  });
+  await app.listen(0, '127.0.0.1');
+
+  await fetch(`${app.url}/v1/responses`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-5.5', input: 'hello' }),
+  });
+
+  assert.equal(app.getRuntimeState().mode, 'fallback');
+
+  await app.close({ force: true });
+
+  assert.equal(app.getRuntimeState().mode, 'primary');
+});
