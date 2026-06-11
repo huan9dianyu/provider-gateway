@@ -254,7 +254,8 @@ PROVIDER_GATEWAY_INSPECT_REQUESTS=1 npm run restart
 - 从请求 body 字符串中抽取到的疑似绝对路径，例如 `/Users/...`。
 
 不会记录完整 prompt/body，也不会记录 `Authorization`、`Cookie`、token、secret、API
-key 等敏感 header 值。
+key 等敏感 header 值。为了确认 Codex 传入的工作区信息，诊断日志会完整保留
+`x-codex-turn-metadata` header。
 
 查看方式：
 

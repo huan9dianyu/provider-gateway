@@ -15,6 +15,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PUBLIC_DIR = path.resolve(__dirname, '../public');
 const MAX_LOG_VALUE_LENGTH = 240;
 const SENSITIVE_HEADER_PATTERN = /authorization|cookie|token|secret|api[-_]?key|x-api-key/i;
+const FULL_INSPECT_HEADER_NAMES = new Set(['x-codex-turn-metadata']);
 const ABSOLUTE_PATH_PATTERN = /(?:\/Users\/[^\s"'`<>{}[\],，。；;]+|\/(?:home|workspace|tmp|private|var)\/[^\s"'`<>{}[\],，。；;]+|[A-Za-z]:\\[^\s"'`<>{}[\],，。；;]+)/g;
 
 function compactObject(value) {
@@ -63,9 +64,16 @@ function inspectIncomingHeaders(headers) {
       .sort(([left], [right]) => left.localeCompare(right))
       .map(([key, value]) => [
         key,
-        SENSITIVE_HEADER_PATTERN.test(key) ? '[redacted]' : truncateForLog(value),
+        SENSITIVE_HEADER_PATTERN.test(key) ? '[redacted]' : inspectHeaderValue(key, value),
       ]),
   );
+}
+
+function inspectHeaderValue(key, value) {
+  if (FULL_INSPECT_HEADER_NAMES.has(key.toLowerCase())) {
+    return Array.isArray(value) ? value.join(', ') : String(value);
+  }
+  return truncateForLog(value);
 }
 
 function collectAbsolutePaths(value, paths = new Set()) {
