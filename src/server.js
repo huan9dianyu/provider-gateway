@@ -14,9 +14,6 @@ import { proxyResponsesRequest } from './router.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_PUBLIC_DIR = path.resolve(__dirname, '../public');
 const MAX_LOG_VALUE_LENGTH = 240;
-const SENSITIVE_HEADER_PATTERN = /authorization|cookie|token|secret|api[-_]?key|x-api-key/i;
-const FULL_INSPECT_HEADER_NAMES = new Set(['x-codex-turn-metadata']);
-const ABSOLUTE_PATH_PATTERN = /(?:\/Users\/[^\s"'`<>{}[\],，。；;]+|\/(?:home|workspace|tmp|private|var)\/[^\s"'`<>{}[\],，。；;]+|[A-Za-z]:\\[^\s"'`<>{}[\],，。；;]+)/g;
 
 function compactObject(value) {
   return Object.fromEntries(
@@ -56,67 +53,6 @@ function safeIncomingHeaders(headers) {
     referer: safeUrlForLog(headers.referer),
     userAgent: truncateForLog(headers['user-agent']),
   });
-}
-
-function inspectIncomingHeaders(headers) {
-  return Object.fromEntries(
-    Object.entries(headers)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, value]) => [
-        key,
-        SENSITIVE_HEADER_PATTERN.test(key) ? '[redacted]' : inspectHeaderValue(key, value),
-      ]),
-  );
-}
-
-function inspectHeaderValue(key, value) {
-  if (FULL_INSPECT_HEADER_NAMES.has(key.toLowerCase())) {
-    return Array.isArray(value) ? value.join(', ') : String(value);
-  }
-  return truncateForLog(value);
-}
-
-function collectAbsolutePaths(value, paths = new Set()) {
-  if (typeof value === 'string') {
-    for (const match of value.matchAll(ABSOLUTE_PATH_PATTERN)) {
-      paths.add(truncateForLog(match[0]));
-    }
-    return paths;
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      collectAbsolutePaths(item, paths);
-    }
-    return paths;
-  }
-
-  if (value && typeof value === 'object') {
-    for (const item of Object.values(value)) {
-      collectAbsolutePaths(item, paths);
-    }
-  }
-
-  return paths;
-}
-
-function inspectRequestBody(bodyBuffer) {
-  const result = {
-    bodyBytes: bodyBuffer.length,
-  };
-
-  const text = bodyBuffer.toString('utf8');
-  try {
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      result.bodyTopLevelKeys = Object.keys(parsed);
-    }
-    result.suspectedPaths = [...collectAbsolutePaths(parsed)];
-  } catch {
-    result.suspectedPaths = [...collectAbsolutePaths(text)];
-  }
-
-  return result;
 }
 
 function errorForLog(error) {
@@ -305,7 +241,6 @@ export async function createGatewayServer({
   runtimeStateOptions,
   logger = defaultLogger,
   failoverNotifier = null,
-  inspectRequests = false,
 } = {}) {
   if (configPath && examplePath) {
     await ensureLocalConfig({ configPath, examplePath });
@@ -433,12 +368,6 @@ export async function createGatewayServer({
         log('info', 'responses.body_read', {
           bodyBytes: bodyBuffer.length,
         });
-        if (inspectRequests) {
-          log('info', 'responses.request_inspect', {
-            headers: inspectIncomingHeaders(request.headers),
-            ...inspectRequestBody(bodyBuffer),
-          });
-        }
         const result = await proxyResponsesRequest(
           config,
           {
