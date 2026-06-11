@@ -238,6 +238,34 @@ osascript -e 'display notification ...'
 调用时通过 Node.js `execFile()` 传参，不经过 shell。非 macOS 环境会自动跳过通知。
 第一次收到通知时，macOS 可能会要求允许该进程发送通知。
 
+## 请求目录诊断日志
+
+如果需要判断 Codex 请求里是否携带了当前项目目录，可以临时打开请求诊断日志：
+
+```bash
+PROVIDER_GATEWAY_INSPECT_REQUESTS=1 npm run restart
+```
+
+开启后，每个 `POST /v1/responses` 会额外写一条 `responses.request_inspect` 日志到
+`logs/provider-gateway.log`。这条日志用于排查路由依据，包含：
+
+- 经过脱敏的请求 header；
+- JSON body 的顶层字段名，例如 `model`、`input`；
+- 从请求 body 字符串中抽取到的疑似绝对路径，例如 `/Users/...`。
+
+不会记录完整 prompt/body，也不会记录 `Authorization`、`Cookie`、token、secret、API
+key 等敏感 header 值。
+
+查看方式：
+
+```bash
+tail -f logs/provider-gateway.log | grep responses.request_inspect
+```
+
+如果日志里能看到稳定的目录信号，后续可以基于这个字段做“按项目目录选择 provider”。
+如果没有目录信号，则需要让 Codex 客户端显式传一个自定义 header，或在不同项目里
+配置不同的本地 gateway 地址。
+
 ## 管理页面和本地 API
 
 管理页面：

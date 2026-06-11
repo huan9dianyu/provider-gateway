@@ -14,6 +14,7 @@ await ensureLocalConfig({ configPath });
 const app = await createGatewayServer({
   configPath,
   failoverNotifier: createMacOSFailoverNotifier(),
+  inspectRequests: process.env.PROVIDER_GATEWAY_INSPECT_REQUESTS === '1',
 });
 await app.listen();
 await writePidFile(DEFAULT_PID_PATH);

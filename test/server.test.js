@@ -228,6 +228,89 @@ test('POST /v1/responses emits diagnostic logs without leaking secrets', async (
   assert.match(serializedLogs, /https:\/\/codex\.local\/session/);
 });
 
+test('POST /v1/responses can inspect request hints without logging full prompt', async (t) => {
+  const configPath = await writeTempConfig();
+  const logRecords = [];
+  const app = await createGatewayServer({
+    configPath,
+    inspectRequests: true,
+    logger: (record) => logRecords.push(record),
+    fetchImpl: async () => {
+      return new Response('{"id":"resp_primary"}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+  await app.listen(0, '127.0.0.1');
+  t.after(() => app.close({ force: true }));
+
+  const response = await fetch(`${app.url}/v1/responses`, {
+    method: 'POST',
+    headers: {
+      authorization: 'Bearer local-secret',
+      cookie: 'session=secret-cookie',
+      'content-type': 'application/json',
+      'x-codex-workspace': '/Users/huangdianyu/java-project/aigc/llm',
+    },
+    body: JSON.stringify({
+      model: 'gpt-5.5',
+      input: 'do not log this secret prompt /Users/huangdianyu/java-project/aigc/llm',
+    }),
+  });
+
+  assert.equal(response.status, 200);
+  await response.text();
+
+  const inspectRecord = logRecords.find((record) => record.event === 'responses.request_inspect');
+  assert.ok(inspectRecord);
+  assert.deepEqual(inspectRecord.bodyTopLevelKeys, ['model', 'input']);
+  assert.equal(inspectRecord.headers.authorization, '[redacted]');
+  assert.equal(inspectRecord.headers.cookie, '[redacted]');
+  assert.equal(
+    inspectRecord.headers['x-codex-workspace'],
+    '/Users/huangdianyu/java-project/aigc/llm',
+  );
+  assert.ok(
+    inspectRecord.suspectedPaths.includes('/Users/huangdianyu/java-project/aigc/llm'),
+  );
+
+  const serializedLogs = JSON.stringify(logRecords);
+  assert.doesNotMatch(serializedLogs, /local-secret/);
+  assert.doesNotMatch(serializedLogs, /secret-cookie/);
+  assert.doesNotMatch(serializedLogs, /do not log this secret prompt/);
+});
+
+test('POST /v1/responses does not inspect request hints by default', async (t) => {
+  const configPath = await writeTempConfig();
+  const logRecords = [];
+  const app = await createGatewayServer({
+    configPath,
+    logger: (record) => logRecords.push(record),
+    fetchImpl: async () => {
+      return new Response('{"id":"resp_primary"}', {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    },
+  });
+  await app.listen(0, '127.0.0.1');
+  t.after(() => app.close({ force: true }));
+
+  const response = await fetch(`${app.url}/v1/responses`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ model: 'gpt-5.5', input: '/Users/example/project' }),
+  });
+
+  assert.equal(response.status, 200);
+  await response.text();
+  assert.equal(
+    logRecords.some((record) => record.event === 'responses.request_inspect'),
+    false,
+  );
+});
+
 test('POST /v1/responses suppresses diagnostic logs when logging is disabled', async (t) => {
   const configPath = await writeTempConfig({ logging: { enabled: false } });
   const logRecords = [];
