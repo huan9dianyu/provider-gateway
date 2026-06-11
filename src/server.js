@@ -151,6 +151,21 @@ function notifyFailover(failoverNotifier, event, log) {
   }
 }
 
+async function failureReasonForNotification(response, failedAttempt) {
+  if (failedAttempt?.error) {
+    return failedAttempt.error;
+  }
+  if (!response) {
+    return undefined;
+  }
+  try {
+    const text = await response.clone().text();
+    return text.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function defaultLogger(record) {
   const line = `[provider-gateway] ${JSON.stringify(record)}`;
   if (record.level === 'error' || record.level === 'warn') {
@@ -452,15 +467,17 @@ export async function createGatewayServer({
               result.attempts.find((attempt) => attempt.provider === result.provider.name) ||
               result.attempts.at(-1) ||
               {};
+            const reason = await failureReasonForNotification(result.response, failedAttempt);
             notifyFailover(
               failoverNotifier,
-              {
+              compactObject({
                 type: 'failover',
                 activeProvider: config.activeProvider,
                 fromProvider: result.provider.name,
                 toProvider: nextProvider,
                 status: failedAttempt.status ?? result.response.status,
-              },
+                reason,
+              }),
               log,
             );
           }

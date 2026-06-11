@@ -18,6 +18,7 @@ test('macOS failover notifier sends a system notification without shell executio
     fromProvider: 'primary',
     toProvider: 'backup',
     status: 500,
+    reason: 'upstream quota exhausted',
   });
 
   assert.equal(sent, true);
@@ -27,6 +28,7 @@ test('macOS failover notifier sends a system notification without shell executio
   assert.match(calls[0].args[1], /display notification/);
   assert.match(calls[0].args[1], /Provider Gateway/);
   assert.match(calls[0].args[1], /primary -> backup/);
+  assert.match(calls[0].args[1], /upstream quota exhausted/);
   assert.equal(calls[0].options.shell, false);
 });
 

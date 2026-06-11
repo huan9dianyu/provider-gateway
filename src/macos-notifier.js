@@ -2,7 +2,7 @@ import { execFile } from 'node:child_process';
 import { platform } from 'node:os';
 
 const DEFAULT_COMMAND = '/usr/bin/osascript';
-const MAX_MESSAGE_LENGTH = 240;
+const MAX_MESSAGE_LENGTH = 4000;
 
 function truncate(value, maxLength = MAX_MESSAGE_LENGTH) {
   const text = value === undefined || value === null ? '-' : String(value);
@@ -26,13 +26,15 @@ export function createMacOSFailoverNotifier({
     fromProvider,
     toProvider,
     status,
+    reason,
   } = {}) {
     if (platformName !== 'darwin') {
       return false;
     }
 
     const statusText = status ? `，状态码 ${status}` : '';
-    const message = `${truncate(fromProvider)} -> ${truncate(toProvider)}${statusText}`;
+    const reasonText = reason ? `，原因：${truncate(reason)}` : '';
+    const message = `${truncate(fromProvider)} -> ${truncate(toProvider)}${statusText}${reasonText}`;
     const subtitle = type === 'recovered'
       ? 'Provider 已恢复主路由'
       : 'Provider 故障切换';

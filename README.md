@@ -220,8 +220,9 @@ GET /api/status
 触发场景：
 
 - `failover`：请求失败后，运行态切到备用 provider。
-  - 示例文案：`primary -> backup，状态码 500`
+  - 示例文案：`primary -> backup，状态码 500，原因：{"error":"quota exceeded"}`
   - 通知副标题：`Provider 故障切换`
+  - 原因来自上游失败响应正文；如果是网络错误或超时，则显示错误信息。
 - `recovered`：备用 provider 的 10 分钟冷却计时结束，运行态自动恢复主 provider。
   - 示例文案：`backup -> primary`
   - 通知副标题：`Provider 已恢复主路由`

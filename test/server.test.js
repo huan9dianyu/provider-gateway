@@ -599,6 +599,7 @@ test('provider failure notifies backend failover listener', async (t) => {
     fromProvider: 'primary',
     toProvider: 'backup',
     status: 500,
+    reason: 'primary failed',
   });
 });
 
@@ -640,6 +641,7 @@ test('fallback cooldown recovery notifies backend listener', async (t) => {
       fromProvider: 'primary',
       toProvider: 'backup',
       status: 500,
+      reason: 'primary failed',
     },
     {
       type: 'recovered',
